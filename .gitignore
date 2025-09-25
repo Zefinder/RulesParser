@@ -1,0 +1,6 @@
+*.o
+*.out
+*.yy.c
+*.tab.*
+*.output
+parser
