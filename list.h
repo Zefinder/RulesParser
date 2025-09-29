@@ -1,14 +1,34 @@
+/*
+ * This file contains all functions that will be used in the list creation,
+ * and all useful actions that can be made in a list: add, remove and get.
+ */
+
 #pragma once
 
+/*
+ * The remove handler type represents the function that will be called to
+ * when remove_node, remove_first or remove last is be called. This is
+ * used to clean the node's user data. The remove handler 
+ * 
+ * For instance let's take a list of char* values. Each value has been
+ * malloc-ed and, upon removal, needs to be freed. The remove handler will
+ * be of the form: 
+ * 
+ * void free_value(void *value)
+ * {
+ *    free((char *)value);
+ * }
+ * 
+ */
 typedef void (*remove_handler_t)(void *);
 
-typedef struct node
-{
-    void *user_data;
-    struct node *previous;
-    struct node *next;
-} node_t;
+typedef struct node node_t;
 
+/*
+ * The list type represents a double linked list. A list holds the list
+ * size, the reference of the first list element, of the last list element
+ * and the user data remove handler.  
+ */
 typedef struct list {
     unsigned int list_size;
     node_t *first_node;

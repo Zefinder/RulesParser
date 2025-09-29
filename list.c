@@ -1,6 +1,18 @@
 #include <stdlib.h>
 #include "list.h"
 
+/*
+ * The node type represents the node in a list. A node holds a reference to
+ * the previous and the element of the list it is in. If a node is the first
+ * (or last) element in the list, the previous (or next) node will be null. 
+ */
+typedef struct node
+{
+    void *user_data;
+    struct node *previous;
+    struct node *next;
+} node_t;
+
 void add_node(list_t *list, void* user_data)
 {
     node_t *node = malloc(sizeof(node_t));

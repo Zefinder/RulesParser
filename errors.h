@@ -1,3 +1,9 @@
+/*
+ * The file contains functions that can be used for error reporting during
+ * the parsing. Use throw_error to throw an error. If the message needs to
+ * be formatted, use throw_error_format (or throw_int_error_format if the
+ * format is an int).
+ */
 #pragma once
 
 #define SEMICOLON_ERROR_MESSAGE "Stateful rules must be separated by a semicolon (;)"
@@ -18,7 +24,18 @@
 #define VALUE_TYPE_GOT_INT_ERROR_FORMAT "The value type has been set to STRING but got <%d>: an integer value"
 #define VALUE_ERROR_MESSAGE "The value must be a number or a string"
 
-void throw_error_format(char *, char *);
-void throw_int_error_format(char*, unsigned int);
+/*
+ * This function throws an error and tries to print the line that caused 
+ * that error alongside with the faulty token.
+ */
 void throw_error(char *);
-void print_error_token(void);
+
+/*
+ * Same as throw_error, but formats the message before showing it.
+ */
+void throw_error_format(char *, char *);
+
+/*
+ * Same as throw_error_format, but with an int format.
+ */
+void throw_int_error_format(char*, unsigned int);

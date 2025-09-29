@@ -4,6 +4,15 @@
 #include "rules.h"
 #include "list.h"
 
+/*
+ * The node data type holds the rule and its statefulness to store it in the rule list.
+ */
+typedef struct node_data
+{
+    rule_t rule;
+    int is_stateful;
+} node_data_t;
+
 void remove_rule_handler(void *user_data)
 {
     node_data_t *node_data = (node_data_t *) user_data;
@@ -198,40 +207,3 @@ int remove_rule(int index)
 {
     return remove_node(&rule_list, index);
 }
-
-// int main()
-// {
-//     print_rules();
-//     printf("\n");
-
-//     char* value;
-//     action_t action;
-//     action.state = 1;
-//     create_rule_body(0x0852, 45);
-//     create_stateful_header(0, action, 0);
-//     add_stateful_subrule();
-
-//     value = strdup("10");
-//     create_rule_parameters(4, 7, value);
-//     create_rule_body(0x0974, 7);
-//     create_stateful_header(1, action, 1);
-//     add_stateful_subrule();
-    
-//     create_rule_body(0x0846, 41);
-//     action.measure = ALLOW;
-//     create_stateful_header(0, action, 1);
-//     add_stateful_subrule();
-//     add_stateful_rule();
-
-//     value = strdup("AAAA");
-//     create_rule_parameters(7, 1, value);
-//     create_rule_body(0x0900, 9);
-//     add_stateless_rule(ALLOW);
-
-//     print_rules();
-//     printf("\n");
-
-//     remove_rule(2);
-
-//     print_rules();
-// }

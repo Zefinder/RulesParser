@@ -243,6 +243,8 @@ type:
         {
             throw_error_format(TYPE_ERROR_FORMAT, $1); YYABORT;
         }
+
+        free($1);
     }
     | error {
         throw_error(TYPE_ERROR_MESSAGE); YYABORT;
@@ -275,6 +277,7 @@ value:
             throw_error_format(VALUE_TYPE_GOT_STRING_ERROR_FORMAT, $1);
         }
 
+        // Freed in the "parameters" rule
         $$ = $1;
     }
     | error {

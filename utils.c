@@ -32,6 +32,11 @@ unsigned int get_line(void)
     return current_line;
 }
 
+void start_token(void)
+{
+    start_location = end_location;
+}
+
 void increment_location(unsigned int size)
 {
     end_location += size;
@@ -45,11 +50,6 @@ unsigned int get_start_location(void)
 unsigned int get_end_location(void)
 {
     return end_location;
-}
-
-void start_token(void)
-{
-    start_location = end_location;
 }
 
 void print_file_line()
