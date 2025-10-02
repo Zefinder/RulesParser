@@ -306,10 +306,15 @@ int main(int argc, char** argv) {
 
     int parse_result = yyparse();
 
+    #ifdef VERBOSE
+    // Print parsed rules
     if (!parse_result)
     {
         print_rules();   
     }
+    #endif
+
+    // Print rules in another file in a CSV form
 
     return parse_result;
 }

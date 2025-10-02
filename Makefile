@@ -1,8 +1,15 @@
+VERBOSE?=0
+CFLAGS=
+
+ifneq (${VERBOSE}, 0)
+	CFLAGS+=-DVERBOSE
+endif
+
 test: clean all
 	./tester.sh
 
 all: utils.o errors.o rules.o list.o lex.yy.c parser.tab.c parser.tab.h
-	gcc -o parser parser.tab.c lex.yy.c utils.o errors.o rules.o list.o -lm
+	gcc -o parser parser.tab.c lex.yy.c utils.o errors.o rules.o list.o -lm ${CFLAGS}
 
 utils.o: utils.h
 	gcc utils.c -o utils.o -c -g -Wall
