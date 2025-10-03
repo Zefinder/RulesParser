@@ -19,6 +19,22 @@
  *    free((char *)value);
  * }
  * 
+ * Note that if the value is a pointer to a struct that contains pointers,
+ * you will need to free the inside pointers as well as the struct pointer.
+ * For instance:
+ * 
+ * struct test
+ * {
+ *    char *name;
+ * }
+ * 
+ * void free_value(void *value)
+ * {
+ *    struct test *value_struct = (struct test *)value;
+ *    free(value_struct->name);
+ *    free(value_struct);
+ * }
+ * 
  */
 typedef void (*remove_handler_t)(void *);
 

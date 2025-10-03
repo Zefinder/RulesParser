@@ -4,3 +4,4 @@
 *.tab.*
 *.output
 parser
+*.csv

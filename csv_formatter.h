@@ -5,21 +5,22 @@
 #pragma once
 
 #include <stdio.h>
-#include <rules.h>
+#include "rules.h"
 
 /*
  * Creates a CSV file. After calling this, all functions of this file
- * are callable.
+ * are callable. 
+ * 
+ * This returns 1 in case of error
  */
 int create_csv(void);
 
 /*
- * Writes a rule in the CSV file. This requires that the create_csv
- * function has been called.
+ * Writes a rule in the CSV file. This requires an existing CSV file.
  */
-void write_rule(rule_t);
+void write_rule(subrule_t);
 
 /*
- * Closes the CSV file
+ * Closes the CSV file. This requires an existing CSV file.
  */
 void close_csv(void);

@@ -29,6 +29,7 @@ void print_error_token()
 void throw_error(char* error_message)
 {
     yyerror(error_message);
+
     // Print line with detected error
     print_error_token();
 }

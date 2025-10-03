@@ -4,11 +4,12 @@
 
 #pragma once
 
+#include <stdint.h>
 #include "list.h"
 
-/* The string representation of the ALLOW value */
+/* The string representation of the ALERT value */
 #define ALLOW_STR "A"
-/* The string representation of the DENY value */
+/* The string representation of the DROP value */
 #define DENY_STR "D"
 
 /* The string representation of the integer type */
@@ -17,15 +18,15 @@
 #define STRING_STR "STRING"
 
 /* The type state_t hold the state's state number */
-typedef unsigned int state_t;
+typedef uint8_t state_t;
 
 /* 
  * The measure type holds an action performed by a stateless rule or by the action
- * (sometimes) in a stateful rule. There are two different measures: ALLOW and DENY. 
+ * (sometimes) in a stateful rule. There are two different measures: ALERT and DROP. 
  */
 typedef enum measure 
 {
-    ALLOW, DENY
+    ALERT = 'A', DROP = 'D'
 } measure_t;
 
 /*
@@ -36,6 +37,7 @@ typedef union action
 {
     measure_t measure;
     state_t state;
+    uint8_t value;
 } action_t;
 
 /*
@@ -53,13 +55,25 @@ typedef enum value_type
  * exist without parameters, this type includes a is_present field to specify if 
  * the values inside the type are coherent.  
  */
-typedef struct rule_parameters
+typedef union rule_parameters
 {
-    int is_present;
-    unsigned int offset;
-    value_type_t type;
-    unsigned int length;
-    char *value;
+    struct
+    {
+        union
+        {
+            struct
+            {
+                uint16_t offset; // 2
+                uint16_t length; // 2
+            } __attribute__((packed));
+    
+            uint32_t raw_options;
+        };
+    
+        char *value;             // 8
+    } __attribute__((packed));
+
+    uint32_t raw[3];
 } rule_parameters_t;
 
 /*
@@ -67,65 +81,70 @@ typedef struct rule_parameters
  * (sub)rules. It holds the message id, the function code and the parameters of
  * the (sub)rule. 
  */
-typedef struct rule_body
+typedef union rule_body
 {
-    unsigned int message_id;
-    unsigned int function_code;
-    rule_parameters_t rule_parameters;
+    struct
+    {
+        union 
+        {
+            struct
+            {
+                uint16_t message_id;           // 2
+                uint16_t function_code;        // 2
+            } __attribute__((packed));
+    
+            uint32_t raw_body;
+        };
+    
+        rule_parameters_t rule_parameters; // 12
+    } __attribute__((packed));
+
+    uint32_t int_raw[4];
+    uint64_t long_raw[2];
 } rule_body_t;
 
 /*
- * The stateless rule type represents a stateless rule. It holds a measure and a
- * rule body. 
+ * The header type represents the header for a subrule (i.e. state|action). 
+ * It holds the rule's start state and its action if the rule matches. For 
+ * stateless rules, there is only one state (0) and the action is always a
+ * measure.
  */
-typedef struct stateless_rule
+typedef union header
 {
-    measure_t measure;
-    rule_body_t rule_body;
-} stateless_rule_t;
+    struct
+    {
+        state_t start_state; // 1
+        action_t action;     // 1
+    } __attribute__((packed));
+
+    uint16_t raw;
+} header_t;
 
 /*
- * The stateful header type represents the header for a stateful rule (i.e. 
- * state|action). It holds the rule's start state and its action if the rule
- * matches. 
- * 
- * [Impl specific] Because the action is a union, a field is_measure_action is
- * added to specify whether the action is a measure or not.
+ * The subrule type represents either a stateless rule, or the part of a 
+ * stateful rule (i.e. subrule ; subrule ; ...). It holds the stateful
+ * header and the rule body. 
  */
-typedef struct stateful_header
+typedef union subrule
 {
-    state_t start_state;
-    action_t action;
-    int is_measure_action;
-} stateful_header_t;
+    struct
+    {
+        union
+        {
+            struct
+            {
+                uint16_t rule_id;       // 2
+                header_t header;        // 2
+            } __attribute__((packed));
 
-/*
- * The stateful subrule type represents the part of a stateful rule (i.e. subrule 
- * ; subrule ; ...). It holds the stateful header and the rule body. 
- */
-typedef struct stateful_subrule
-{
-    stateful_header_t stateful_header;
-    rule_body_t rule_body;
-} stateful_subrule_t;
+            uint32_t raw_rule_header;
+        };
+        
+        rule_body_t rule_body;  // 16
+    } __attribute__((packed));
 
-/*
- * The stateful rule type represents all subrule of a rule. It is implemented as a
- * list of subrules.
- */
-typedef struct stateful_rule
-{
-    list_t stateful_list;
-} stateful_rule_t;
-
-/*
- * A rule is either a stateless rule or a stateful rule. 
- */
-typedef union rule
-{
-    stateless_rule_t stateless_rule;
-    stateful_rule_t stateful_rule;
-} rule_t;
+    uint32_t raw[5];
+} subrule_t;
 
 /*
  * Creates a rule body, this needs to be called after create_rule_parameters.
@@ -141,7 +160,7 @@ void create_rule_parameters(unsigned int, unsigned int, char*);
 /*
  * Create a stateful header for a stateful subrule
  */
-void create_stateful_header(state_t, action_t, int);
+void create_stateful_header(state_t, action_t);
 
 /*
  * Sets the parameter value type 
@@ -163,7 +182,7 @@ void add_stateless_rule(measure_t);
 /*
  * Adds a subrule for the current stateful rule.
  */
-void add_stateful_subrule(void);
+void add_subrule(void);
 
 /*
  * Adds a stateful rule to the current list of rules. A stateful rule is composed 
@@ -178,9 +197,14 @@ void add_stateful_rule(void);
 void print_rules(void);
 
 /*
+ * Returnds the number of stored rules.
+ */
+int get_number_of_rules(void);
+
+/*
  * Gets the rule at the specified index.
  */
-rule_t get_rule(int);
+subrule_t* get_rule(int);
 
 /*
  * Removes the rule at the specified index.

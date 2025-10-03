@@ -9,52 +9,28 @@
  */
 typedef struct node_data
 {
-    rule_t rule;
-    int is_stateful;
+    subrule_t subrule;
 } node_data_t;
 
 void remove_rule_handler(void *user_data)
 {
     node_data_t *node_data = (node_data_t *) user_data;
-
-    if (node_data->is_stateful)
+    subrule_t subrule = node_data->subrule;
+    if (subrule.rule_body.rule_parameters.value == NULL)
     {
-        list_t *stateful_rules_ptr = &node_data->rule.stateful_rule.stateful_list;
-        int stateful_subrules_number = stateful_rules_ptr->list_size;
-        for (int i = 0; i < stateful_subrules_number; i++)
-        {
-            // Remove the subrule one by one 
-            remove_first(stateful_rules_ptr);
-        }
-    } else 
-    {
-        stateless_rule_t stateless_rule = node_data->rule.stateless_rule;
-        if (stateless_rule.rule_body.rule_parameters.is_present)
-        {
-            free(stateless_rule.rule_body.rule_parameters.value);
-        }
+        free(subrule.rule_body.rule_parameters.value);
     }
-    
+
     free(node_data);
 }
 
-void remove_stateful_subrule_handler(void *user_data)
-{
-    stateful_subrule_t *subrule = (stateful_subrule_t *) user_data;
-    if (subrule->rule_body.rule_parameters.is_present)
-    {
-        free(subrule->rule_body.rule_parameters.value);
-    }
-
-    free(subrule);
-}
-
 list_t rule_list = {.list_size = 0, .first_node = NULL, .last_node = NULL, .remove_handler = &remove_rule_handler};
-list_t *stateful_rules_ptr;
+
+unsigned int rule_id;
 
 rule_body_t rule_body;
 rule_parameters_t rule_parameters;
-stateful_header_t stateful_header;
+header_t header;
 value_type_t value_type;
 
 void create_rule_body(unsigned int message_id, unsigned int function_code)
@@ -66,18 +42,15 @@ void create_rule_body(unsigned int message_id, unsigned int function_code)
 
 void create_rule_parameters(unsigned int offset, unsigned int length, char* value)
 {
-    rule_parameters.is_present = 1;
     rule_parameters.offset = offset;
-    rule_parameters.type = value_type;
     rule_parameters.length = length;
     rule_parameters.value = strdup(value);
 }
 
-void create_stateful_header(state_t start_state, action_t action, int is_measure_action)
+void create_stateful_header(state_t start_state, action_t action)
 {
-    stateful_header.start_state = start_state;
-    stateful_header.action = action;
-    stateful_header.is_measure_action = is_measure_action;
+    header.start_state = start_state;
+    header.action = action;
 }
 
 void set_parameter_value_type(value_type_t type)
@@ -90,64 +63,64 @@ value_type_t get_parameter_value_type(void)
     return value_type;
 }
 
-void add_stateless_rule(measure_t measure)
+void add_subrule()
 {
     node_data_t *node_data = malloc(sizeof(node_data_t));
-    node_data->is_stateful = 0;
-    stateless_rule_t* stateless_rule = &node_data->rule.stateless_rule;
-    stateless_rule->measure = measure;
-    stateless_rule->rule_body = rule_body;
+    subrule_t *subrule = &node_data->subrule;
+
+    subrule->rule_id = rule_id;
+    subrule->header = header;
+    subrule->rule_body = rule_body;
     add_node(&rule_list, node_data);
 
-    // Reset parameters presence
-    rule_parameters.is_present = 0;
+    // Reset parameters
+    rule_parameters.raw[0] = 0;
+    rule_parameters.raw[1] = 0;
+    rule_parameters.raw[2] = 0;
+
+    // Reset rule body
+    rule_body.long_raw[0] = 0;
+    rule_body.long_raw[1] = 0;
+}
+
+void add_stateless_rule(measure_t measure)
+{
+    create_stateful_header(0, (action_t) measure);
+    add_subrule();
+
+    // Increment rule id
+    rule_id++;
 }
 
 void add_stateful_rule()
 {
-    node_data_t *node_data = malloc(sizeof(node_data_t));
-    node_data->is_stateful = 1;
-    node_data->rule.stateful_rule.stateful_list = *stateful_rules_ptr;
-    add_node(&rule_list, node_data);
-
-    // Free the list pointer since the content has been copied
-    free(stateful_rules_ptr);
-    stateful_rules_ptr = NULL; 
-}
-
-void add_stateful_subrule()
-{
-    if (stateful_rules_ptr == NULL)
-    {
-        // Init the stateful rules list
-        stateful_rules_ptr = malloc(sizeof(list_t));
-        stateful_rules_ptr->list_size = 0;
-        stateful_rules_ptr->first_node = NULL;
-        stateful_rules_ptr->last_node = NULL;
-        stateful_rules_ptr->remove_handler = &remove_stateful_subrule_handler;
-    }
-
-    stateful_subrule_t* stateful_subrule = malloc(sizeof(stateful_subrule_t));
-    stateful_subrule->stateful_header = stateful_header;
-    stateful_subrule->rule_body = rule_body;
-    add_node(stateful_rules_ptr, stateful_subrule);
-
-    // Reset parameters presence
-    rule_parameters.is_present = 0;
+    // Increment rule id
+    rule_id++;
 }
 
 void print_rule_parameters(rule_parameters_t rule_parameters)
 {
-    if (rule_parameters.is_present)
+    if (rule_parameters.value != NULL)
     {
-        printf(" %d:%s:%d %s", rule_parameters.offset, rule_parameters.type == INT ? INT_STR : STRING_STR, rule_parameters.length, rule_parameters.value);
+        printf(" %d %d %s", rule_parameters.offset, rule_parameters.length, rule_parameters.value);
     }
 }
 
 void print_rule_body(rule_body_t rule_body)
 {
     printf(" %d %d", rule_body.message_id, rule_body.function_code);
-    print_rule_parameters(rule_body.rule_parameters);
+}
+
+void print_header(header_t header)
+{
+    printf("E%d|", header.start_state);
+    if (header.action.measure == ALERT || header.action.measure == DROP)
+    {
+        printf("%s", header.action.measure == ALERT ? ALLOW_STR : DENY_STR);
+    } else 
+    {
+        printf("E%d", header.action.state);
+    }
 }
 
 void print_rules(void)
@@ -157,53 +130,52 @@ void print_rules(void)
         printf("Empty rule list\n");
     } else
     {
+        printf("List size: %d\n", rule_list.list_size);
         for (int i = 0; i < rule_list.list_size; i++)
         {
             node_data_t *node_data = get(&rule_list, i);
-            if (node_data->is_stateful)
-            {
-                list_t *stateful_rules_ptr = &node_data->rule.stateful_rule.stateful_list;
-                int stateful_rules_number = stateful_rules_ptr->list_size;
-
-                for (int i = 0; i < stateful_rules_number; i++)
-                {
-                    stateful_subrule_t *stateful_subrule = get(stateful_rules_ptr, i);
-                    
-                    printf("E%d|", stateful_subrule->stateful_header.start_state);
-                    
-                    if (stateful_subrule->stateful_header.is_measure_action)
-                    {
-                        printf("%s", stateful_subrule->stateful_header.action.measure == ALLOW ? ALLOW_STR : DENY_STR);
-                    } else 
-                    {
-                        printf("E%d", stateful_subrule->stateful_header.action.state);
-                    }
-                    
-                    print_rule_body(stateful_subrule->rule_body);
-
-                    if (i != stateful_rules_number - 1)
-                    {
-                        printf(" ; ");
-                    }
-                }
-            } else 
-            {
-                stateless_rule_t *stateless_rule = &node_data->rule.stateless_rule;
-                printf("%s", stateless_rule->measure == ALLOW ? ALLOW_STR : DENY_STR);
-                print_rule_body(stateless_rule->rule_body);
-            }
-
+            subrule_t subrule = node_data->subrule;
+            printf("(%d) -> ", subrule.rule_id);
+            print_header(subrule.header);
+            print_rule_body(subrule.rule_body);
+            print_rule_parameters(subrule.rule_body.rule_parameters);
+            
             printf("\n");
         }
     }
 }
 
-rule_t get_rule(int index)
+int get_number_of_rules(void)
 {
-    return *((rule_t *) (get(&rule_list, index)));
+    return rule_list.list_size;
+}
+
+subrule_t *get_rule(int index)
+{
+    node_data_t *node_data = get(&rule_list, index);
+    subrule_t *subrule = &node_data->subrule;
+    return &node_data->subrule;
 }
 
 int remove_rule(int index)
 {
     return remove_node(&rule_list, index);
 }
+
+// int main()
+// {
+//     subrule_t subrule = {.header={.start_state=1, .action=2}, .rule_id=0, .rule_body={.message_id=0x1840, .function_code=32, .rule_parameters.raw={0, 0, 0}}};
+//     // subrule_t subrule = {.raw = {0x00000102, 0x18400020, 0, 0, 0}};
+//     printf("(%d) -> ", subrule.rule_id);
+//     print_header(subrule.header);
+//     print_rule_body(subrule.rule_body);
+//     print_rule_parameters(subrule.rule_body.rule_parameters);
+//     printf("\n");
+//     printf("{0x%08X,", subrule.raw[0]);
+//     printf(" 0x%08X,", subrule.raw[1]);
+//     printf(" 0x%08X,", subrule.raw[2]);
+//     printf(" 0x%08X,", subrule.raw[3]);
+//     printf(" 0x%08X}\n", subrule.raw[4]);
+
+//     return 0;
+// }

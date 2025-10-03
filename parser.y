@@ -4,6 +4,7 @@
   #include <string.h>
   #include "utils.h"
   #include "errors.h"
+  #include "csv_formatter.h"
 //   #include "parser.tab.h"
 //   #define YYLTYPE 1
   extern FILE *yyin;
@@ -63,7 +64,7 @@ rule:
     ;
 
 stateless_rule:
-    measure rule_body {add_stateless_rule($1 == 'A' ? ALLOW : DENY);}
+    measure rule_body {add_stateless_rule($1 == 'A' ? ALERT : DROP);}
     ;
 
 stateful_rule:
@@ -76,26 +77,23 @@ stateful_rule_following:
     ;
 
 stateful_rule_body:
-    state_description rule_body {add_stateful_subrule();}
+    state_description rule_body {add_subrule();}
     ;
 
 state_description:
     state state_separator action {
         action_t action;
-        int is_measure_action = 0;
         if ($3 == 'A')
         {
-            is_measure_action = 1;
-            action.measure = ALLOW;
+            action.measure = ALERT;
         } else if ($3 == 'D')
         {
-            is_measure_action = 1;
-            action.measure = DENY;
+            action.measure = DROP;
         }
         {
             action.state = $3;
         }
-        create_stateful_header($1, action, is_measure_action);
+        create_stateful_header($1, action);
     }
     ;
 
@@ -315,6 +313,33 @@ int main(int argc, char** argv) {
     #endif
 
     // Print rules in another file in a CSV form
+    int nb_rules = get_number_of_rules();
+    if (nb_rules != 0)
+    {
+        if (!create_csv())
+        {
+
+            for (int i = 0; i < nb_rules; i++)
+            {
+                printf("Writing rule %d\n", i);
+                subrule_t *subrule = get_rule(i);
+                /* printf("%d\n", subrule->header.raw); */
+                printf("0x%04X\n\n", subrule->header.raw);
+                /* header_t header = subrule->header;
+                printf("E%d|", header.start_state);
+                if (header.action.measure == ALERT || header.action.measure == DROP)
+                {
+                    printf("%s", header.action.measure == ALERT ? ALLOW_STR : DENY_STR);
+                } else 
+                {
+                    printf("E%d", header.action.state);
+                }
+                printf("\n"); */
+                write_rule(*subrule); 
+            }
+            close_csv();
+        }
+    }
 
     return parse_result;
 }
