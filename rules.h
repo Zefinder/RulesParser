@@ -143,8 +143,22 @@ typedef union subrule
         rule_body_t rule_body;  // 16
     } __attribute__((packed));
 
+    struct
+    {
+        uint32_t raw_body[3];  // 12
+        char *value;           // 8
+    } __attribute__((packed));
+
     uint32_t raw[5];
+
 } subrule_t;
+
+typedef struct rule
+{
+    uint8_t holder; // 1
+    subrule_t **state_subrules;
+    uint8_t *subrule_number;
+} rule_t;
 
 /*
  * Creates a rule body, this needs to be called after create_rule_parameters.

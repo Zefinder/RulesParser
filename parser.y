@@ -300,8 +300,20 @@ void yyerror(const char *msg) {
 }
 
 int main(int argc, char** argv) {
-    yyin = open_file(argv[1]);
+    if (argc != 2)
+    {
+        printf("[ERROR] - There must be one argument: the name of the file to parse\n");
+        exit(1);
+    }
 
+    FILE *file = open_file(argv[1]);
+    if (file == NULL)
+    {
+        printf("[ERROR] - There was a problem when opening the file... Does it exist?\n");
+        exit(1);
+    }
+
+    yyin = file;
     int parse_result = yyparse();
 
     #ifdef VERBOSE
@@ -318,24 +330,10 @@ int main(int argc, char** argv) {
     {
         if (!create_csv())
         {
-
             for (int i = 0; i < nb_rules; i++)
             {
-                printf("Writing rule %d\n", i);
                 subrule_t *subrule = get_rule(i);
-                /* printf("%d\n", subrule->header.raw); */
-                printf("0x%04X\n\n", subrule->header.raw);
-                /* header_t header = subrule->header;
-                printf("E%d|", header.start_state);
-                if (header.action.measure == ALERT || header.action.measure == DROP)
-                {
-                    printf("%s", header.action.measure == ALERT ? ALLOW_STR : DENY_STR);
-                } else 
-                {
-                    printf("E%d", header.action.state);
-                }
-                printf("\n"); */
-                write_rule(*subrule); 
+                write_rule(subrule); 
             }
             close_csv();
         }

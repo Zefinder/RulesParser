@@ -6,7 +6,7 @@
 #define CSV_FILE_NAME "./rules.csv"
 #define CSV_HEADER "Rule id,Start_state,End_state,Message id,Function code,Offset,Length,Value\n"
 #define CSV_LINE_FORMAT "%d,%d,%d,%d,%d,%d,%d,%s\n"
-#define NULL_STR "NULL"
+#define NULL_STR ""
 
 FILE *csv_file = NULL;
 
@@ -22,23 +22,22 @@ int create_csv(void)
         }
 
         // Write header
-        printf("FILE OPENED, WRITING HEADER\n");
         fprintf(csv_file, CSV_HEADER);
-        printf("HEADER WRITTEN\n");
     }
     
     return 0;
 }
 
-void write_rule(subrule_t subrule)
+void write_rule(subrule_t *subrule)
 {
-    rule_body_t rule_body = subrule.rule_body;
+    rule_body_t rule_body = subrule->rule_body;
     rule_parameters_t rule_parameters = rule_body.rule_parameters;
+
     fprintf(csv_file, CSV_LINE_FORMAT, 
         // Subrule header
-        subrule.rule_id, 
-        subrule.header.start_state, 
-        subrule.header.action.value,
+        subrule->rule_id, 
+        subrule->header.start_state, 
+        subrule->header.action.value,
         // Subrule body
         rule_body.message_id, 
         rule_body.function_code,

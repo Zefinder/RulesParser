@@ -5,3 +5,5 @@
 *.output
 parser
 *.csv
+parsed_rules.h
+.vscode/

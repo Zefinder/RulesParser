@@ -153,7 +153,6 @@ int get_number_of_rules(void)
 subrule_t *get_rule(int index)
 {
     node_data_t *node_data = get(&rule_list, index);
-    subrule_t *subrule = &node_data->subrule;
     return &node_data->subrule;
 }
 
@@ -161,21 +160,3 @@ int remove_rule(int index)
 {
     return remove_node(&rule_list, index);
 }
-
-// int main()
-// {
-//     subrule_t subrule = {.header={.start_state=1, .action=2}, .rule_id=0, .rule_body={.message_id=0x1840, .function_code=32, .rule_parameters.raw={0, 0, 0}}};
-//     // subrule_t subrule = {.raw = {0x00000102, 0x18400020, 0, 0, 0}};
-//     printf("(%d) -> ", subrule.rule_id);
-//     print_header(subrule.header);
-//     print_rule_body(subrule.rule_body);
-//     print_rule_parameters(subrule.rule_body.rule_parameters);
-//     printf("\n");
-//     printf("{0x%08X,", subrule.raw[0]);
-//     printf(" 0x%08X,", subrule.raw[1]);
-//     printf(" 0x%08X,", subrule.raw[2]);
-//     printf(" 0x%08X,", subrule.raw[3]);
-//     printf(" 0x%08X}\n", subrule.raw[4]);
-
-//     return 0;
-// }

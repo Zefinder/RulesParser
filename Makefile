@@ -1,12 +1,31 @@
+PREFIX?=
+OUTPUT?=
+RULES?=
 VERBOSE?=0
+
+CSV_FILE=./rules.csv
 CFLAGS=--short-enums
+PYTHON_PREFIX:=
+PYTHON_OUTPUT:=
 
 ifneq (${VERBOSE}, 0)
 	CFLAGS+=-DVERBOSE
 endif
 
+ifneq (${PREFIX}, )
+	PYTHON_PREFIX:=-p ${PREFIX}
+endif
+
+ifneq (${OUTPUT}, )
+	PYTHON_OUTPUT:=-o ${OUTPUT}
+endif
+
 test: clean all
 	./tester.sh
+
+launch: test clean all
+	./parser ${RULES}
+	python3 generator.py ${PYTHON_PREFIX} ${PYTHON_OUTPUT}
 
 all: utils.o errors.o rules.o list.o csv_formatter.o lex.yy.c parser.tab.c parser.tab.h
 	gcc -o parser parser.tab.c lex.yy.c utils.o errors.o rules.o list.o csv_formatter.o -lm ${CFLAGS}
@@ -36,4 +55,4 @@ show_conflicts: parser.y
 	bison -t -v -d -Wcex parser.y
 
 clean:
-	@rm -f *.o *.out *.yy.c *.tab.* *.output parser *.csv
+	@rm -f *.o *.out *.yy.c *.tab.* *.output parser *.csv parsed_rules.h

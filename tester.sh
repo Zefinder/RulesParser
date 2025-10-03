@@ -23,7 +23,7 @@ ERROR_PARSE="error_"
 VALID_FILES=( $(find $TEST_DIR -maxdepth 1 -name "$VALID_PARSE*") )
 
 test_counter=0
-error_counter=0
+ok_counter=0
 
 for valid_file in "${VALID_FILES[@]}"
 do
@@ -31,9 +31,9 @@ do
     test_counter=$((test_counter+1))
     if ! $PARSER_PATH "$valid_file" >> "/dev/null"
     then
-        error_counter=$((error_counter+1))
         write_error "Test file $valid_file should be parsable, but appears to be not..."
     else
+        ok_counter=$((ok_counter+1))
         write_green "OK!"
     fi
 done
@@ -45,16 +45,16 @@ do
     test_counter=$((test_counter+1))
     if $PARSER_PATH "$error_file" >> "/dev/null";
     then
-        error_counter=$((error_counter+1))
         write_error "Test file $error_file should not be parsable, but appears to be..."
     else
+        ok_counter=$((ok_counter+1))
         write_green "OK!"
     fi
 done
 
-if [[ $error_counter == 0 ]]
+if [[ "$ok_counter" == "$test_counter" ]]
 then
     write_green "All tests passed! ($test_counter/$test_counter)"
 else
-    write_error "Not all tests passed! ($error_counter/$test_counter)"
+    write_error "Not all tests passed! ($ok_counter/$test_counter)"
 fi
