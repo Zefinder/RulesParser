@@ -46,7 +46,7 @@ typedef union action
  */
 typedef enum value_type
 {
-    INT, STRING
+    INT = 0, STRING = 1
 } value_type_t;
 
 /*
@@ -153,12 +153,26 @@ typedef union subrule
 
 } subrule_t;
 
+/*
+ * The rule type represents a rule. It holds the current state, all 
+ * subrules and the transitions per state.
+ */
 typedef struct rule
 {
-    uint8_t holder; // 1
+    uint8_t holder;
     subrule_t *state_subrules;
     uint8_t *subrule_number;
 } rule_t;
+
+/*
+ * The node data type holds the rule and its statefulness to store it in 
+ * the rule list.
+ */
+typedef struct rule_data
+{
+    value_type_t value_type;
+    subrule_t subrule;
+} rule_data_t;
 
 /*
  * Creates a rule body, this needs to be called after create_rule_parameters.
@@ -218,15 +232,9 @@ int get_number_of_rules(void);
 /*
  * Gets the rule at the specified index.
  */
-subrule_t* get_rule(int);
+rule_data_t* get_rule(int);
 
 /*
  * Removes the rule at the specified index.
  */
 int remove_rule(int);
-
-void print_header(header_t header);
-
-void print_rule_body(rule_body_t rule_body);
-
-void print_rule_parameters(rule_parameters_t rule_parameters);

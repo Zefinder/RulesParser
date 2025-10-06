@@ -18,7 +18,7 @@ int create_csv(void);
 /*
  * Writes a rule in the CSV file. This requires an existing CSV file.
  */
-void write_rule(subrule_t *);
+void write_rule(subrule_t *, value_type_t value_type);
 
 /*
  * Closes the CSV file. This requires an existing CSV file.

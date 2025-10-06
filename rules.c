@@ -4,17 +4,9 @@
 #include "rules.h"
 #include "list.h"
 
-/*
- * The node data type holds the rule and its statefulness to store it in the rule list.
- */
-typedef struct node_data
-{
-    subrule_t subrule;
-} node_data_t;
-
 void remove_rule_handler(void *user_data)
 {
-    node_data_t *node_data = (node_data_t *) user_data;
+    rule_data_t *node_data = (rule_data_t *) user_data;
     subrule_t subrule = node_data->subrule;
     if (subrule.rule_body.rule_parameters.value == NULL)
     {
@@ -65,8 +57,9 @@ value_type_t get_parameter_value_type(void)
 
 void add_subrule()
 {
-    node_data_t *node_data = malloc(sizeof(node_data_t));
+    rule_data_t *node_data = malloc(sizeof(rule_data_t));
     subrule_t *subrule = &node_data->subrule;
+    node_data->value_type = value_type;
 
     subrule->rule_id = rule_id;
     subrule->header = header;
@@ -98,11 +91,11 @@ void add_stateful_rule()
     rule_id++;
 }
 
-void print_rule_parameters(rule_parameters_t rule_parameters)
+void print_rule_parameters(rule_parameters_t rule_parameters, value_type_t value_type)
 {
     if (rule_parameters.value != NULL)
     {
-        printf(" %d %d %s", rule_parameters.offset, rule_parameters.length, rule_parameters.value);
+        printf(" %d:%s:%d %s", rule_parameters.offset, value_type == INT ? "INT" : "STRING", rule_parameters.length, rule_parameters.value);
     }
 }
 
@@ -133,12 +126,12 @@ void print_rules(void)
         printf("List size: %d\n", rule_list.list_size);
         for (int i = 0; i < rule_list.list_size; i++)
         {
-            node_data_t *node_data = get(&rule_list, i);
+            rule_data_t *node_data = get(&rule_list, i);
             subrule_t subrule = node_data->subrule;
             printf("(%d) -> ", subrule.rule_id);
             print_header(subrule.header);
             print_rule_body(subrule.rule_body);
-            print_rule_parameters(subrule.rule_body.rule_parameters);
+            print_rule_parameters(subrule.rule_body.rule_parameters, node_data->value_type);
             
             printf("\n");
         }
@@ -150,10 +143,9 @@ int get_number_of_rules(void)
     return rule_list.list_size;
 }
 
-subrule_t *get_rule(int index)
+rule_data_t* get_rule(int index)
 {
-    node_data_t *node_data = get(&rule_list, index);
-    return &node_data->subrule;
+    return get(&rule_list, index);
 }
 
 int remove_rule(int index)

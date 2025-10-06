@@ -332,8 +332,8 @@ int main(int argc, char** argv) {
         {
             for (int i = 0; i < nb_rules; i++)
             {
-                subrule_t *subrule = get_rule(i);
-                write_rule(subrule); 
+                rule_data_t *rule_data = get_rule(i);
+                write_rule(&rule_data->subrule, rule_data->value_type); 
             }
             close_csv();
         }

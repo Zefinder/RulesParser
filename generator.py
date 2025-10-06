@@ -9,6 +9,7 @@ class Subrule(object):
     message_id: int
     function_code: int
     offset: int
+    value_type: int
     length: int
     value: str
     
@@ -19,6 +20,7 @@ class Subrule(object):
                  message_id: int,
                  function_code: int,
                  offset: int,
+                 value_type: int,
                  length: int,
                  value: str) -> None:
         self.start_state = start_state
@@ -26,6 +28,7 @@ class Subrule(object):
         self.message_id = message_id
         self.function_code = function_code
         self.offset = offset
+        self.value_type=value_type
         self.length = length
         self.value = value
         
@@ -36,23 +39,22 @@ DEFAULT_RULE_FILE_NAME: str = 'parsed_rules'
 
 NO_VALUE: str = 'NULL'
 CSV_FILE: str = './rules.csv'
-SUBRULE_RULE_FORMAT: str = '{prefix:s}_rule{rule_id:d}_subrule{subrule_id:d}'
+# SUBRULE_RULE_FORMAT: str = '{prefix:s}_rule{rule_id:d}_subrule{subrule_id:d}'
 SUBRULE_STRUCTURE_FORMAT: str = '{prefix:s}_subrules[{subrule_id:d}] = (subrule_t){{ .raw_body = {{ \
 0x{action:0>2X}{start:0>2X}{rule_id:0>4X}, \
 0x{function_code:0>4X}{message_id:0>4X}, \
 0x{length:0>4X}{offset:0>4X} }}, .value={value:s} }};'
 SUBRULE_NUMBER_ARRAY_NAME_FORMAT: str = '{prefix:s}_subrule_array{rule_id:d}'
-SUBRULE_NUMBER_ARRAY_FORMAT: str = 'int {name:s}[{transition_number:d}] = {subrule_number:s};'
+SUBRULE_NUMBER_ARRAY_FORMAT: str = 'uint8_t {name:s}[{transition_number:d}] = {subrule_number:s};'
 RULE_STRUCTURE_FORMAT: str = '{prefix:s}_rules[{rule_id:d}] = (rule_t){{ .holder=0, .state_subrules=&{prefix:s}_subrules[{subrule_start:d}], .subrule_number={subrule_number_name:s} }};'
 INCLUDE_FILE_STRUCTURE_FORMAT: str = '''#pragma once
 
-#include <stdlib.h>
 #include "rules.h"
 
 #define {cap_prefix:s}_RULE_NUMBER {rule_number:d}
 
-rule_t {prefix:s}_rules[{rule_number:d}];
-subrule_t {prefix:s}_subrules[{subrule_number:d}];
+extern rule_t {prefix:s}_rules[{rule_number:d}];
+extern subrule_t {prefix:s}_subrules[{subrule_number:d}];
 
 void {prefix:s}_init(void);
 '''
@@ -60,12 +62,15 @@ DECL_FILE_STRUCTURE_FORMAT: str = '''#include <stdlib.h>
 #include "{include_file_name:s}"
 #include "rules.h"
 
+rule_t {prefix:s}_rules[{rule_number:d}];
+subrule_t {prefix:s}_subrules[{subrule_number:d}];
+
+{subrule_number_definitions:s}
+
 void {prefix:s}_init(void)
 {{
     {subrule_definitions:s}
     
-    {subrule_number_definitions:s}
-
     {rule_definitions:s}
 }}
 '''
@@ -85,14 +90,16 @@ def add_subrule(line: str) -> None:
     message_id: int = int(parameters[3])
     function_code: int = int(parameters[4])
     offset: int = int(parameters[5])
-    length: int = int(parameters[6])
-    value: str = parameters[7].strip()
+    value_type: int = int(parameters[6])
+    length: int = int(parameters[7])
+    value: str = parameters[8].strip()
 
     subrule: Subrule = Subrule(start_state=start_state,
                                end_state=end_state,
                                message_id=message_id,
                                function_code=function_code,
                                offset=offset,
+                               value_type=value_type,
                                length=length,
                                value=value)
     
@@ -118,13 +125,33 @@ def main(rules_prefix: str, include_file: str, decl_file: str) -> None:
         subrules: list[Subrule] = rules[rule_id]
         subrules.sort(key=lambda subrule: subrule.start_state, reverse=False)
         
-        subrules_per_start_state: dict[int, list[str]] = {}
         subrules_number_per_start_state: dict[int, int] = {}
         
-        subrule_start = subrule_count
+        subrule_start_index = subrule_count
         subrule_id: int = 0
         for subrule in subrules:
-            subrule_name = SUBRULE_RULE_FORMAT.format(prefix=rules_prefix, rule_id=rule_id, subrule_id=subrule_id)
+            # Check if value is empty, in this case, put the subrule value to NO_VALUE
+            if subrule.value == '':
+                subrule.value = NO_VALUE
+            
+            else:
+                value: str = subrule.value
+                
+                # Check if value is an int. In this case, transform the int to a hex string
+                if subrule.value_type == 0:
+                    value = hex(int(value))[2:] # This must be an int since the parser allowed the value
+                    
+                    # If value has an odd number of charactrs, add a 0
+                    value = '0' + value if len(value) & 1 == 1 else value
+                    
+                    # Split every two characters
+                    values: list[str] = [(value[i : i + 2]) for i in range(0, len(value), 2)]
+                    
+                    # Store back in value
+                    value = f'\\x{'\\x'.join(values)}'
+                    
+                # Put the string value between double quotes
+                subrule.value = f'"{value}"'
             
             # Create structure string
             subrules_str.append(SUBRULE_STRUCTURE_FORMAT.format(prefix=rules_prefix, 
@@ -136,23 +163,17 @@ def main(rules_prefix: str, include_file: str, decl_file: str) -> None:
                                                                 message_id=subrule.message_id,
                                                                 length=subrule.length,
                                                                 offset=subrule.offset,
-                                                                value=f'"{subrule.value:s}"' if subrule.value != '' else NO_VALUE))
+                                                                value=subrule.value))
             subrule_count += 1
             
-            # Put in start state dict
-            if subrule.start_state not in subrules_per_start_state:
-                subrules_per_start_state[subrule.start_state] = []
+            # Put in dict to count the number of transitions per state
+            if subrule.start_state not in subrules_number_per_start_state:
                 subrules_number_per_start_state[subrule.start_state] = 0
                 
-            subrules_per_start_state[subrule.start_state].append(subrule_name)
             subrules_number_per_start_state[subrule.start_state] += 1        
             subrule_id += 1
         
-        state_subrules_tmp: list[str] = []
-        for values in list(subrules_per_start_state.values()):
-            state_subrules_tmp.append('{ &' + ', &'.join(values) + ' }')
-            
-        state_subrules: str = '{ ' + ', '.join(state_subrules_tmp) + ' }'
+        # Write the different subrules            
         subrule_number: str = '{ ' + ', '.join(str(i) for i in list(subrules_number_per_start_state.values())) + ' }'
         
         # Create subrule number array
@@ -164,20 +185,20 @@ def main(rules_prefix: str, include_file: str, decl_file: str) -> None:
         # Create rule
         rules_str.append(RULE_STRUCTURE_FORMAT.format(prefix=rules_prefix,
                                                       rule_id=rule_id,
-                                                      state_subrules=state_subrules,
-                                                      subrule_start=subrule_start,
+                                                      subrule_start=subrule_start_index,
                                                       subrule_number_name=subrule_number_name))
     
-    # Print result in file
+    # Print result in files
     with open(include_file, 'w') as file:
-        # file.write(INCLUDE_FILE_STRUCTURE_FORMAT.format(subrule_definitions='\n'.join(subrules_str), rule_definitions='\n'.join(rules_str)))
         file.write(INCLUDE_FILE_STRUCTURE_FORMAT.format(cap_prefix=rules_prefix.upper(), prefix=rules_prefix, rule_number=len(rules_str), subrule_number=len(subrules_str)))
         
     with open(decl_file, 'w') as file:
         file.write(DECL_FILE_STRUCTURE_FORMAT.format(prefix=rules_prefix,
-                                                     include_file_name=include_file.split('/')[-1], 
+                                                     include_file_name=include_file.split('/')[-1],
+                                                     rule_number=len(rules_str),
+                                                     subrule_number=len(subrules_str),
                                                      subrule_definitions='\n\t'.join(subrules_str), 
-                                                     subrule_number_definitions='\n\t'.join(subrule_number_str),
+                                                     subrule_number_definitions='\n'.join(subrule_number_str),
                                                      rule_definitions='\n\t'.join(rules_str)))
     
 

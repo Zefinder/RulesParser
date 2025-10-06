@@ -4,8 +4,8 @@
 #include "rules.h"
 
 #define CSV_FILE_NAME "./rules.csv"
-#define CSV_HEADER "Rule id,Start_state,End_state,Message id,Function code,Offset,Length,Value\n"
-#define CSV_LINE_FORMAT "%d,%d,%d,%d,%d,%d,%d,%s\n"
+#define CSV_HEADER "Rule id,Start_state,End_state,Message id,Function code,Offset,Type,Length,Value\n"
+#define CSV_LINE_FORMAT "%d,%d,%d,%d,%d,%d,%d,%d,%s\n"
 #define NULL_STR ""
 
 FILE *csv_file = NULL;
@@ -28,7 +28,7 @@ int create_csv(void)
     return 0;
 }
 
-void write_rule(subrule_t *subrule)
+void write_rule(subrule_t *subrule, value_type_t value_type)
 {
     rule_body_t rule_body = subrule->rule_body;
     rule_parameters_t rule_parameters = rule_body.rule_parameters;
@@ -42,7 +42,8 @@ void write_rule(subrule_t *subrule)
         rule_body.message_id, 
         rule_body.function_code,
         // Subrule parameters
-        rule_parameters.offset, 
+        rule_parameters.offset,
+        value_type,
         rule_parameters.length, 
         rule_parameters.value != NULL ? rule_parameters.value : NULL_STR);
 }
