@@ -156,7 +156,7 @@ typedef union subrule
 typedef struct rule
 {
     uint8_t holder; // 1
-    subrule_t **state_subrules;
+    subrule_t *state_subrules;
     uint8_t *subrule_number;
 } rule_t;
 
@@ -224,3 +224,9 @@ subrule_t* get_rule(int);
  * Removes the rule at the specified index.
  */
 int remove_rule(int);
+
+void print_header(header_t header);
+
+void print_rule_body(rule_body_t rule_body);
+
+void print_rule_parameters(rule_parameters_t rule_parameters);
