@@ -7,12 +7,12 @@
 
 uint8_t rule_number = 0;
 
-ids_action_t alert()
+void alert()
 {
     printf("ALERT (rule %d)\n\n", rule_number);
 }
 
-ids_action_t drop()
+void drop()
 {
     printf("DROP (rule %d)\n\n", rule_number);
 }
@@ -134,7 +134,7 @@ ids_action_t check_rule(rule_t *rule, uint16_t message_id, uint16_t function_cod
     return NOTHING;
 }
 
-ids_action_t check_packet(rule_t *rules, int number_rules, size_t buf_len, uint8_t *buf)
+ids_return_t check_packet(rule_t *rules, int number_rules, size_t buf_len, uint8_t *buf)
 {
     uint32_t message_id = (buf[0]<<8) | buf[1];
     uint16_t function_code = buf[6];
@@ -157,7 +157,8 @@ ids_action_t check_packet(rule_t *rules, int number_rules, size_t buf_len, uint8
         printf("No action\n\n");
     }
 
-    return ids_action;
+    ids_return_t ids_return = {.ids_action = ids_action, .rule_number = rule_number};
+    return ids_return;
 }
 
 /*    FOR TESTING    */
