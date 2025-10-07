@@ -5,7 +5,6 @@
 #pragma once
 
 #include <stdint.h>
-#include "list.h"
 
 /* The string representation of the ALERT value */
 #define ALLOW_STR "A"
