@@ -5,6 +5,10 @@
 #include "rules.h"
 #include "ids.h"
 
+#define MESSAGE_ID_HIGH_INDEX 0
+#define MESSAGE_ID_LOW_INDEX 1
+#define FUNCTION_CODE_INDEX 6
+
 uint8_t rule_number = 0;
 
 void alert()
@@ -135,8 +139,8 @@ ids_action_t check_rule(rule_t *rule, uint16_t message_id, uint16_t function_cod
 
 ids_return_t check_packet(rule_t *rules, int number_rules, size_t buf_len, uint8_t *buf)
 {
-    uint32_t message_id = (buf[0]<<8) | buf[1];
-    uint16_t function_code = buf[6];
+    uint32_t message_id = (buf[MESSAGE_ID_HIGH_INDEX] << 8) | buf[MESSAGE_ID_LOW_INDEX];
+    uint16_t function_code = buf[FUNCTION_CODE_INDEX];
 
     ids_action_t ids_action = NOTHING;
     for (int i = 0; i < number_rules; i++)
