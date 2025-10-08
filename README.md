@@ -4,8 +4,12 @@ This repository is an example of simple rule parsing for a small IDS (Intrusion 
 - A flex lexer 
 - A bison parser
 - A CSV formatter in C (to transfer information to Python)
-- A C code generator in Python
+- A C code generator in Python (that will contain the parsed rules)
 - An IDS that can parse a specific type of packets (see below)
+
+## Requirements
+
+This repository requires `gcc` and `make` to compile C code. The parser requires **Bison** (`apt install bison`), and the lexer requires **Flex** (`apt install flex`). The code generation requires **Python 3**.
 
 ## The parser
 
@@ -18,6 +22,18 @@ Examples:
 - `E0|E1 0x18FF 78 ; E1|A 0x0930 4 256:STRING:24 NO ; E1|E0 0x0930 4 256:STRING:24 YES`
 - `A 0x1977 3 128:INT:32 5000`
 
-## IDS Packet
+## Packet formation
 
-The packet for the IDS is made as such: `<message_id upper byte> <message_id lower byte> XX XX XX XX <function code byte> <offset + value>` (`XX` represents any value).
+The packet for the IDS is made as such: `<message_id upper byte> <message_id lower byte> XX XX XX XX <function code byte> <offset + value>` (`XX` represents any value). The offset value is the offset from the start of the packet, this allows the user to adapt to different packets if the headers are different. 
+
+## How to launch? 
+
+You can use the makefile to compile, launch the parser and generate the C code. 
+
+To launch the tests (presents in the `tests` directory) that will check if the parser is good, use `make test`.
+
+To compile the parser, use `make all`. You can set the `VERBOSE` parameter to 1 to display the parsed rules in the console after parsing (`make all VERBOSE=1`)
+
+To compile and generate the C code containing all the parsed rules, use `make launch RULES=<rule file>`. You can add a prefix to the generated rules with the `PREFIX` parameter, and you can set the output file name with the `OUTPUT` parameter. By default, there is no prefix and the output is `parsed_rules`. For instance: `make launch RULES=tests/valid_input1.rules PREFIX=probe3 OUTPUT=probe3`. Note that you can also put the `VERBOSE` parameter. 
+
+In `ids.c` there is a small example with the `valid_input1.rules` file in `tests`. You can use it to understand how the IDS works. To compile, use `gcc ids.c probe3.c --short-enums`

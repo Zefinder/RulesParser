@@ -109,7 +109,6 @@ ids_action_t check_rule(rule_t *rule, uint16_t message_id, uint16_t function_cod
                     uint8_t index = 0;
                     do
                     {
-                        // printf("0x%02X - 0x%02X\n", rule_value[index], packet_value[index]);
                         is_different = rule_value[index] - packet_value[index];
                         index++;
                     } while(!is_different && index < length);
